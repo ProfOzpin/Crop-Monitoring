@@ -3,13 +3,10 @@ name: Deploy UAE Agriculture Lambda
 on:
   push:
     branches: [main, master]
-    paths: 
-      - 'lambda/**'
-      - '.github/workflows/deploy-lambda.yml'
+    paths:
   pull_request:
     branches: [main, master]
-    paths: 
-      - 'lambda/**'
+    paths:
 
 env:
   AWS_REGION: us-east-1
