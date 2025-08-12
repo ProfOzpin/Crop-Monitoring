@@ -280,7 +280,7 @@ def clip_bands_to_aoi(downloaded_bands, aoi_gdf, temp_path):
 def calculate_vegetation_indices(clipped_bands, temp_path):
     """Calculate NDVI, EVI, etc. on clipped data"""
     
-    print("🌱 Calculating vegetation indices...")
+    print("🌱 Calculating vegetation indices....")
     from pathlib import Path
     if not isinstance(temp_path, Path):
         temp_path = Path(temp_path)
