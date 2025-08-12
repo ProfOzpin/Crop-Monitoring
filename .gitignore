@@ -1,0 +1,15 @@
+setup_s3.sh
+trust-policy.json
+Report.pdf
+Report.tex
+Report.out
+Report.aux
+Report.log
+Report.synctex.gz
+spotify_to_ytmusic
+search_results.geojson
+oauth.json
+Figure_1.png
+satellit-processor.zip
+misc/
+.venv/

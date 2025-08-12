@@ -1,0 +1,154 @@
+name: Deploy UAE Agriculture Lambda
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - 'lambda/**'
+      - '.github/workflows/deploy-lambda.yml'
+  pull_request:
+    branches: [main]
+    paths: 
+      - 'lambda/**'
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: uae-satellite-processor
+  S3_BUCKET: uae-agri-monitoring
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install test dependencies
+      run: |
+        pip install pytest boto3 moto
+        pip install -r lambda/requirements.txt
+    
+    - name: Run Lambda unit tests
+      run: |
+        cd tests
+        python -m pytest test_lambda_function.py -v
+    
+    - name: Validate AOI GeoJSON
+      run: |
+        python -c "import json; json.load(open('lambda/aoi.geojson'))"
+        echo "✅ AOI GeoJSON is valid"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Create deployment package
+      run: |
+        cd lambda
+        
+        # Install dependencies with platform targeting
+        pip install --platform linux_x86_64 --target . --implementation cp --python-version 3.9 --only-binary=:all: --upgrade -r requirements.txt
+        
+        # Clean up unnecessary files
+        find . -name "*.pyc" -delete
+        find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        find . -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+        
+        # Create deployment zip
+        zip -r ../lambda-deployment.zip . -x "*.git*" "*test*" "*.pyc" "*/__pycache__/*"
+        
+        # Show package size
+        ls -lh ../lambda-deployment.zip
+    
+    - name: Check if Lambda function exists
+      id: check-function
+      run: |
+        if aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION_NAME }} 2>/dev/null; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Create Lambda function (if new)
+      if: steps.check-function.outputs.exists == 'false'
+      run: |
+        # Get account ID for IAM role
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        
+        # Create function
+        aws lambda create-function \
+          --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+          --runtime python3.9 \
+          --role arn:aws:iam::${ACCOUNT_ID}:role/lambda-agriculture-role \
+          --handler lambda_function.lambda_handler \
+          --zip-file fileb://lambda-deployment.zip \
+          --timeout 900 \
+          --memory-size 3008 \
+          --environment Variables="{S3_BUCKET=${{ env.S3_BUCKET }}}" \
+          --description "UAE Agriculture Monitoring - Automated deployment"
+        
+        echo "✅ Lambda function created"
+    
+    - name: Update Lambda function code
+      if: steps.check-function.outputs.exists == 'true'
+      run: |
+        aws lambda update-function-code \
+          --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+          --zip-file fileb://lambda-deployment.zip
+        
+        echo "✅ Lambda function updated"
+    
+    - name: Update Lambda configuration
+      run: |
+        aws lambda update-function-configuration \
+          --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+          --timeout 900 \
+          --memory-size 3008 \
+          --environment Variables="{S3_BUCKET=${{ env.S3_BUCKET }}}"
+    
+    - name: Test deployment
+      run: |
+        echo "🧪 Testing deployed Lambda function..."
+        
+        aws lambda invoke \
+          --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+          --payload '{"test_mode": true, "start_date": "2024-07-01", "end_date": "2024-07-31"}' \
+          response.json
+        
+        cat response.json
+        
+        # Verify successful deployment
+        if grep -q '"statusCode": 200' response.json; then
+          echo "✅ Deployment test passed!"
+        else
+          echo "❌ Deployment test failed!"
+          exit 1
+        fi
+    
+    - name: Post-deployment cleanup
+      run: |
+        # Clean up deployment artifacts
+        rm -f lambda-deployment.zip response.json
+        echo "✅ Cleanup completed"

@@ -1,0 +1,52 @@
+name: Integration Testing
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM
+  workflow_dispatch:  # Manual trigger
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: uae-satellite-processor
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install analysis dependencies
+      run: |
+        pip install -r analysis/requirements.txt
+    
+    - name: Run end-to-end integration test
+      run: |
+        cd tests
+        python integration_test.py
+    
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "Integration test completed at $(date)" > integration-report.txt
+        echo "Lambda function status: $(aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --query 'Configuration.State' --output text)" >> integration-report.txt
+    
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-test-results
+        path: integration-report.txt

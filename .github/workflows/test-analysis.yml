@@ -1,0 +1,48 @@
+name: Test Analysis Scripts
+
+on:
+  push:
+    branches: [main, develop]
+    paths: 
+      - 'analysis/**'
+      - 'tests/**'
+  pull_request:
+    branches: [main]
+    paths: 
+      - 'analysis/**'
+      - 'tests/**'
+
+jobs:
+  test-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install pytest boto3 moto pandas matplotlib seaborn numpy
+        pip install -r analysis/requirements.txt
+    
+    - name: Run analysis script tests
+      run: |
+        cd tests
+        python -m pytest test_analysis.py -v
+    
+    - name: Lint Python code
+      run: |
+        pip install flake8
+        flake8 analysis/ --max-line-length=120 --ignore=E501,W503
+    
+    - name: Check imports and syntax
+      run: |
+        python -m py_compile analysis/aws_analysis.py
+        python -m py_compile analysis/aws_automation.py
+        python -m py_compile analysis/climate_integration.py
+        echo "✅ All analysis scripts compile successfully"
