@@ -63,7 +63,7 @@ jobs:
     
     - name: Create deployment package
       run: |
-        cd lambda
+        cd lambda_function
         
         # Install dependencies with platform targeting
         pip install --platform linux_x86_64 --target . --implementation cp --python-version 3.10 --only-binary=:all: --upgrade -r requirements.txt
