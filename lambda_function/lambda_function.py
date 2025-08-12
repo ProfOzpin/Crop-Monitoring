@@ -281,6 +281,10 @@ def calculate_vegetation_indices(clipped_bands, temp_path):
     """Calculate NDVI, EVI, etc. on clipped data"""
     
     print("🌱 Calculating vegetation indices...")
+    from pathlib import Path
+    if not isinstance(temp_path, Path):
+        temp_path = Path(temp_path)
+    
     indices = {}
     
     # Read clipped bands
