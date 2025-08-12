@@ -37,7 +37,7 @@ jobs:
     
     - name: Validate AOI GeoJSON
       run: |
-        python -c "import json; json.load(open('lambda/aoi.geojson'))"
+        python -c "import json; json.load(open('lambda_function/aoi.geojson'))"
         echo "✅ AOI GeoJSON is valid"
 
   deploy:
