@@ -33,7 +33,7 @@ jobs:
     - name: Run analysis script tests
       run: |
         cd tests
-        python -m pytest test_analysis.py -v
+        python -m pytest test_lambda_function.py -v
     
     - name: Lint Python code
       run: |
