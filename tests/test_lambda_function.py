@@ -245,7 +245,7 @@ def test_download_bands_to_tmp(mock_requests):
     
     with patch('pathlib.Path') as mock_path:
         mock_temp_path = MagicMock()
-        mock_file = MagicMK()
+        mock_file = MagicMock()
         mock_file.stat.return_value.st_size = 1024 * 1024  # 1MB
         mock_temp_path.__truediv__.return_value = mock_file
         
