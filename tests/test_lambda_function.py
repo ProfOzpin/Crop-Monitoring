@@ -117,28 +117,32 @@ def test_find_and_process_scene_no_scenes_found(mock_client):
 def test_calculate_vegetation_indices():
     """Test NDVI and other vegetation index calculations"""
     
-    # Create mock raster data as actual numpy arrays (not MagicMock objects)
+    # Create mock raster data as actual numpy arrays
     red_data = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
     nir_data = np.array([[0.5, 0.6], [0.7, 0.8]], dtype=np.float32)
     green_data = np.array([[0.15, 0.25], [0.35, 0.45]], dtype=np.float32)
     blue_data = np.array([[0.05, 0.15], [0.25, 0.35]], dtype=np.float32)
     
     with patch('rasterio.open') as mock_rasterio:
-        # Create context manager mocks that return actual numpy arrays
+        # Create proper context manager mocks
         def create_band_mock(data):
             mock_band = MagicMock()
             mock_band.__enter__ = MagicMock(return_value=mock_band)
             mock_band.__exit__ = MagicMock(return_value=None)
-            mock_band.read.return_value = (data * 10000).astype(np.uint16)  # Sentinel-2 scaling
+            mock_band.read.return_value = (data * 10000).astype(np.uint16)
             mock_band.profile = {'dtype': 'uint16', 'nodata': 0, 'count': 1}
             return mock_band
         
-        # Set up the context manager returns with actual data
+        # Mock all rasterio.open calls (4 for reading + 3 for writing indices)
         mock_rasterio.side_effect = [
             create_band_mock(red_data),
             create_band_mock(nir_data), 
             create_band_mock(green_data),
-            create_band_mock(blue_data)
+            create_band_mock(blue_data),
+            # Add mocks for the 3 index file writes (NDVI, EVI, NDWI)
+            MagicMock(),
+            MagicMock(), 
+            MagicMock()
         ]
         
         # Mock file paths
@@ -149,23 +153,24 @@ def test_calculate_vegetation_indices():
             'blue': '/tmp/blue_clipped.tif'
         }
         
-        with patch('pathlib.Path'):
-            indices = lambda_function.calculate_vegetation_indices(clipped_bands, '/tmp')
-            
-            # Verify NDVI calculation
-            assert 'NDVI' in indices
-            calculated_ndvi = indices['NDVI']
-            
-            # Check NDVI values are reasonable (between -1 and 1)
-            valid_ndvi = calculated_ndvi[~np.isnan(calculated_ndvi)]
-            assert np.all(valid_ndvi >= -1.0)
-            assert np.all(valid_ndvi <= 1.0)
-            
-            # Verify other indices exist
-            assert 'EVI' in indices
-            assert 'NDWI' in indices
-            
-            print("✅ Vegetation indices calculation test passed")
+        # DON'T patch pathlib.Path - let it work normally
+        # The function needs real Path objects for isinstance() checks
+        indices = lambda_function.calculate_vegetation_indices(clipped_bands, '/tmp')
+        
+        # Verify NDVI calculation
+        assert 'NDVI' in indices
+        calculated_ndvi = indices['NDVI']
+        
+        # Check NDVI values are reasonable (between -1 and 1)
+        valid_ndvi = calculated_ndvi[~np.isnan(calculated_ndvi)]
+        assert np.all(valid_ndvi >= -1.0)
+        assert np.all(valid_ndvi <= 1.0)
+        
+        # Verify other indices exist
+        assert 'EVI' in indices
+        assert 'NDWI' in indices
+        
+        print("✅ Vegetation indices calculation test passed")
 
 @patch('lambda_function.boto3.client')
 def test_upload_results_to_s3(mock_boto3):
