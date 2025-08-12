@@ -31,7 +31,7 @@ jobs:
     - name: Install test dependencies
       run: |
         pip install pytest boto3 moto
-        pip install -r lambda/requirements.txt
+        pip install -r lambda_function/requirements.txt
     
     - name: Run Lambda unit tests
       run: |
