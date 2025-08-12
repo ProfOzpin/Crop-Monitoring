@@ -44,6 +44,7 @@ def test_find_and_process_scene(mock_boto3, mock_client):
     
     # This would test the actual processing logic
     # Add more specific tests based on your lambda function structure
+    #
 
 def test_aoi_loading():
     """Test AOI configuration loading"""
