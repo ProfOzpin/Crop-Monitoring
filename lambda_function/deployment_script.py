@@ -25,7 +25,7 @@ def deploy_to_aws():
     # Create or update Lambda function
     function_config = {
         'FunctionName': 'uae-satellite-processor',
-        'Runtime': 'python3.9',
+        'Runtime': 'python3.10',
         'Role': 'arn:aws:iam::YOUR-ACCOUNT:role/lambda-execution-role',  # Update this
         'Handler': 'lambda_function.lambda_handler',
         'Timeout': 900,  # 15 minutes
