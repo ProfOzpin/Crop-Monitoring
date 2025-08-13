@@ -76,9 +76,12 @@ jobs:
         # Install with --no-deps to bypass the constraint
         pip install --platform linux_x86_64 --target . --implementation cp --python-version 3.10 --no-deps --upgrade -r requirements.txt
         
+        # Install pyproj as binary first to avoid Cython build issues
+        pip install --target . pyproj
+        
         # Handle dependencies manually for rasterio/Fiona
         pip install --target . --no-binary=rasterio,Fiona rasterio Fiona
-        
+
         # Clean up unnecessary files
         find . -name "*.pyc" -delete
         find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
