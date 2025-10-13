@@ -47,7 +47,7 @@ _Dashboard showing time-series analysis of crop health._
 *   **Data & Formats**:
     *   GeoJSON
 *   **Key Python Libraries**:
-    *   *(e.g., Boto3, Rasterio, GeoPandas - add specific libraries from `requirements.txt`)*
+    *   *(e.g., Boto3, Rasterio, GeoPandas)*
 
 ---
 
