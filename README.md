@@ -81,7 +81,6 @@ Follow these instructions to get a copy of the project up and running on your lo
     ```
 
 3.  **Install dependencies:**
-    *(Note: A `requirements.txt` file is assumed. Please create one if it doesn't exist.)*
     ```sh
     pip install -r requirements.txt
     ```
