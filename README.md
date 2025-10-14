@@ -40,7 +40,7 @@ _Dashboard showing time-series analysis of crop health._
 *   **Cloud Platform & Services**:
     *   AWS (Amazon Web Services)
     *   AWS Lambda
-    *   AWS S3 (implied for data storage)
+    *   AWS S3
     *   AWS IAM (for permissions)
 *   **CI/CD**:
     *   GitHub Actions
